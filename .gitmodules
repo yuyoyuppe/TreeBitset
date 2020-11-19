@@ -1,0 +1,3 @@
+[submodule "deps/premake_scaffold"]
+	path = deps/premake_scaffold
+	url = https://github.com/yuyoyuppe/premake_scaffold
