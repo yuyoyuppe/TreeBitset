@@ -1,0 +1,28 @@
+#pragma once
+// Catch2 doesn't support /std:c++latest with VS2019, but we need std::countr_zero stuff, so use msvc intrinsics directly
+
+#include <type_traits>
+
+#if !defined(_MSC_VER) || _MSVC_LANG >= 202000L
+#include <bit>
+#else
+#include <intrin.h>
+namespace std {
+template <typename T>
+int countr_zero(T x)
+{
+  if constexpr(sizeof(T) <= 4)
+  {
+    return _tzcnt_u32(x);
+  }
+  else if constexpr(sizeof(T) == 8)
+  {
+    return static_cast<int>(_tzcnt_u64(x));
+  }
+  else
+  {
+    static_assert(sizeof(T) <= 8, "this type isn't supported");
+  }
+}
+}
+#endif

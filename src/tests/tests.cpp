@@ -4,8 +4,8 @@
 #include <vector>
 #include <algorithm>
 
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+#define CATCH_CONFIG_ENABLE_BENCHMARKING
+#include "catch_amalgamated.hpp"
 
 TEST_CASE("Correct tree configuration", "[properties]")
 {
@@ -116,4 +116,79 @@ TEMPLATE_TEST_CASE("TreeBitset ordered obtain", "[obtain]", uint8_t, uint16_t, u
       REQUIRE(tb.obtain_id() == TreeBitset<TestType>::invalid_id);
     }
   }
+}
+
+
+TEST_CASE("TreeBitset<uint64> with 2^23 elements", "[bench]")
+{
+  BENCHMARK("init + obtain all in order")
+  {
+    TreeBitset<uint64_t> tb{23};
+    for(size_t idx = 0; idx < tb.max_elements(); ++idx)
+      tb.obtain_id();
+    REQUIRE_FALSE(tb.is_free(123));
+  };
+
+  BENCHMARK_ADVANCED("obtain 1024 in order")(Catch::Benchmark::Chronometer meter)
+  {
+    TreeBitset<uint64_t> tb{23};
+    meter.measure([&] {
+      for(size_t idx = 0; idx < 1024; ++idx)
+        tb.obtain_id();
+      REQUIRE_FALSE(tb.is_free(123));
+    });
+  };
+
+  BENCHMARK_ADVANCED("obtain all in order")(Catch::Benchmark::Chronometer meter)
+  {
+    TreeBitset<uint64_t> tb{23};
+    meter.measure([&] {
+      for(size_t idx = 0; idx < tb.max_elements(); ++idx)
+        tb.obtain_id();
+      REQUIRE_FALSE(tb.is_free(123));
+    });
+  };
+
+  BENCHMARK_ADVANCED("obtain half in order")(Catch::Benchmark::Chronometer meter)
+  {
+    TreeBitset<uint64_t> tb{23};
+    const size_t         n_elements = tb.max_elements() / 2;
+    meter.measure([&] {
+      for(size_t idx = 0; idx < n_elements; ++idx)
+        tb.obtain_id();
+      REQUIRE_FALSE(tb.is_free(123));
+    });
+  };
+
+  BENCHMARK_ADVANCED("obtain half - random free order")(Catch::Benchmark::Chronometer meter)
+  {
+    TreeBitset<uint64_t> tb{23};
+
+    const size_t max_elements = tb.max_elements();
+    for(size_t idx = 0; idx < max_elements / 2; ++idx)
+      tb.set_free(rand() % max_elements, false);
+
+    meter.measure([&] {
+      const size_t max_elements = tb.max_elements();
+      for(size_t idx = 0; idx < max_elements / 2; ++idx)
+        tb.obtain_id();
+      return tb.is_free(0);
+    });
+  };
+
+  BENCHMARK_ADVANCED("set all unfree manually")(Catch::Benchmark::Chronometer meter)
+  {
+    TreeBitset<uint64_t> tb{23};
+
+    const size_t max_elements = tb.max_elements();
+    for(size_t idx = 0; idx < max_elements / 2; ++idx)
+      tb.set_free(rand() % max_elements, false);
+
+    meter.measure([&] {
+      const size_t max_elements = tb.max_elements();
+      for(size_t idx = 0; idx < max_elements; ++idx)
+        tb.set_free(idx, false);
+      REQUIRE_FALSE(tb.is_free(123));
+    });
+  };
 }

@@ -1,9 +1,9 @@
 #pragma once
 #include <limits>
 #include <cinttypes>
-#include <bit>
 #include <memory>
 
+#include "detail/bit"
 #include "detail/math_utils.hpp"
 
 template <typename BlockT>
