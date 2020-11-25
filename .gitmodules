@@ -1,3 +1,6 @@
 [submodule "deps/premake_scaffold"]
 	path = deps/premake_scaffold
 	url = https://github.com/yuyoyuppe/premake_scaffold
+[submodule "deps/meta-mate"]
+	path = deps/meta-mate
+	url = https://github.com/yuyoyuppe/meta-mate/

@@ -61,7 +61,10 @@ set all unfree manually                        100             1     4.88769 s
 # TODO
 - <s>benchmarks</s>
 - implement id list transforming into ranges for set_free_for_range
+- support building metadata from a provided block
+- use factory with error-handling
+- support packing
 - implement set_free_for_range
 - external memory block supply policy
 - zero/one for free-indication policy
-- template policy for crab-spinlocking
+- make IDiterator bidirectional_iterator_tag

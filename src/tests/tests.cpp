@@ -3,15 +3,52 @@
 #include <array>
 #include <vector>
 #include <algorithm>
+#include <iostream> // TODO: REMOVE
+#include <random>
+#include <unordered_set>
+#include <tuple>
 
 #define CATCH_CONFIG_ENABLE_BENCHMARKING
 #include "catch_amalgamated.hpp"
 
-TEST_CASE("Correct tree configuration", "[properties]")
+auto get_seed()
+{
+  std::random_device::result_type seed = std::random_device{}();
+  //seed = 771893045;
+  printf("seed: %u\n", seed);
+  return seed;
+}
+std::mt19937 g{get_seed()};
+
+const std::array max_elements_exp_vals = {6, 7, 12, 13};
+
+template <typename BlockT = std::uint64_t>
+inline std::tuple<TreeBitset<TreeBitsetConfig<BlockT>>, std::vector<bool>> prepare_random_data(
+  const size_t num_elements_exp, const size_t max_elements_divider)
+{
+  auto result = std::make_tuple(TreeBitset<TreeBitsetConfig<BlockT>>{num_elements_exp},
+                                std::vector<bool>(size_t{1} << num_elements_exp, true));
+
+  auto & tb     = std::get<0>(result);
+  auto & bitset = std::get<1>(result);
+
+  const size_t max_elements = tb.max_elements();
+  INFO("max elements = " << max_elements);
+  for(size_t idx = 0; idx < max_elements / max_elements_divider; ++idx)
+  {
+    const size_t selected_idx = g() & (max_elements - 1);
+    const bool   set          = g() & 1;
+    tb.set_free(selected_idx, set);
+    bitset[selected_idx] = set;
+  }
+  return result;
+}
+
+TEST_CASE("Tree configuration", "[properties]")
 {
   SECTION("TreeBitset<uint64_t> with 1 element")
   {
-    TreeBitset<uint64_t> tb{0};
+    TreeBitset tb{0};
     REQUIRE(tb.num_metadata_levels() == 0);
     REQUIRE(tb.num_element_blocks() == 1);
     REQUIRE(tb.num_metadata_blocks() == 0);
@@ -19,7 +56,7 @@ TEST_CASE("Correct tree configuration", "[properties]")
   }
   SECTION("TreeBitset<uint64_t> with 64 elements")
   {
-    TreeBitset<uint64_t> tb{6};
+    TreeBitset tb{6};
     REQUIRE(tb.num_metadata_levels() == 0);
     REQUIRE(tb.num_element_blocks() == 1);
     REQUIRE(tb.num_metadata_blocks() == 0);
@@ -27,7 +64,7 @@ TEST_CASE("Correct tree configuration", "[properties]")
   }
   SECTION("TreeBitset<uint64_t> with 2^12 elements")
   {
-    TreeBitset<uint64_t> tb{12};
+    TreeBitset tb{12};
     REQUIRE(tb.num_metadata_levels() == 1);
     REQUIRE(tb.num_element_blocks() == 64);
     REQUIRE(tb.num_metadata_blocks() == 1);
@@ -36,7 +73,7 @@ TEST_CASE("Correct tree configuration", "[properties]")
 
   SECTION("TreeBitset<uint64_t> with 2^13 elements")
   {
-    TreeBitset<uint64_t> tb{13};
+    TreeBitset tb{13};
     REQUIRE(tb.num_metadata_levels() == 2);
     REQUIRE(tb.num_element_blocks() == 128);
     REQUIRE(tb.num_metadata_blocks() == 1 + 64);
@@ -45,7 +82,7 @@ TEST_CASE("Correct tree configuration", "[properties]")
 
   SECTION("TreeBitset<uint8_t> with 2^7 elements")
   {
-    TreeBitset<uint8_t> tb{7};
+    TreeBitset<TreeBitsetConfig<std::uint8_t>> tb{7};
     REQUIRE(tb.num_metadata_levels() == 2);
     REQUIRE(tb.num_element_blocks() == 16);
     REQUIRE(tb.num_metadata_blocks() == 1 + 8);
@@ -53,51 +90,34 @@ TEST_CASE("Correct tree configuration", "[properties]")
   }
 }
 
-TEMPLATE_TEST_CASE("TreeBitset (un)set random 1000 elements", "[set]", uint8_t, uint16_t, uint32_t, uint64_t)
+TEMPLATE_TEST_CASE("TreeBitset (un)set random 1/2", "[set]", uint16_t, uint32_t, uint64_t)
 {
-  const std::array max_elements_exp_vals = {5, 8, 10, 12};
   for(const size_t max_elements_exp : max_elements_exp_vals)
   {
-    INFO("elements = " << (1 << max_elements_exp));
-    TreeBitset<TestType> tb{max_elements_exp};
-    std::vector<bool>    bitset(tb.max_elements(), true);
-    for(int i = 0; i < 1000; ++i)
-    {
-      const size_t idx = rand() % size(bitset);
-      if(rand() % 2)
-      {
-        bitset[idx] = false;
-        tb.set_free(idx, false);
-      }
-      else
-      {
-        bitset[idx] = true;
-        tb.set_free(idx, true);
-      }
-    }
+    auto [tb, bitset] = prepare_random_data<TestType>(max_elements_exp, 2);
+
     for(size_t idx = 0; idx < size(bitset); ++idx)
       REQUIRE(tb.is_free(idx) == bitset[idx]);
 
-    SECTION("obtain() gets correct indices")
+    SECTION("obtain() obtains valid indices")
     {
       const size_t n_free = std::count(begin(bitset), end(bitset), true);
       for(size_t i = 0; i < n_free; ++i)
         REQUIRE(bitset[tb.obtain_id()]);
 
-      REQUIRE(TreeBitset<TestType>::invalid_id == tb.obtain_id());
-      REQUIRE(TreeBitset<TestType>::invalid_id == tb.obtain_id());
-      REQUIRE(TreeBitset<TestType>::invalid_id == tb.obtain_id());
+      REQUIRE(decltype(tb)::invalid_id == tb.obtain_id());
+      REQUIRE(decltype(tb)::invalid_id == tb.obtain_id());
+      REQUIRE(decltype(tb)::invalid_id == tb.obtain_id());
     }
   }
 }
 
-TEMPLATE_TEST_CASE("TreeBitset ordered obtain", "[obtain]", uint8_t, uint16_t, uint32_t, uint64_t)
+TEMPLATE_TEST_CASE("TreeBitset ordered obtain", "[obtain]", uint16_t, uint32_t, uint64_t)
 {
-  const std::array max_elements_exp_vals = {6, 7, 12, 13};
   for(const size_t max_elements_exp : max_elements_exp_vals)
   {
-    INFO("elements = " << (1 << max_elements_exp));
-    TreeBitset<TestType> tb{max_elements_exp};
+    TreeBitset<TreeBitsetConfig<TestType>> tb{max_elements_exp};
+    INFO("elements = " << tb.max_elements());
     for(size_t idx = 0; idx < tb.max_elements(); ++idx)
     {
       INFO("idx = " << idx);
@@ -111,19 +131,118 @@ TEMPLATE_TEST_CASE("TreeBitset ordered obtain", "[obtain]", uint8_t, uint16_t, u
 
     SECTION("returns invalid id when no free elements left")
     {
-      REQUIRE(tb.obtain_id() == TreeBitset<TestType>::invalid_id);
-      REQUIRE(tb.obtain_id() == TreeBitset<TestType>::invalid_id);
-      REQUIRE(tb.obtain_id() == TreeBitset<TestType>::invalid_id);
+      REQUIRE(tb.obtain_id() == decltype(tb)::invalid_id);
+      REQUIRE(tb.obtain_id() == decltype(tb)::invalid_id);
+      REQUIRE(tb.obtain_id() == decltype(tb)::invalid_id);
     }
   }
 }
 
+TEMPLATE_TEST_CASE("Invalid max_id by default", "[max_id]", uint16_t, uint32_t, uint64_t)
+{
+  TreeBitset<TreeBitsetConfig<TestType>> tb{2};
+  REQUIRE(decltype(tb)::invalid_id == tb.max_used_id());
+}
+
+TEMPLATE_TEST_CASE("Determines max_id after unsetting random 1/2", "[max_id]", uint16_t, uint32_t, uint64_t)
+{
+  for(const size_t max_elements_exp : max_elements_exp_vals)
+  {
+    auto [tb, bitset] = prepare_random_data<TestType>(max_elements_exp, 2);
+    for(auto it = crbegin(bitset); it != crend(bitset); ++it)
+    {
+      if(*it == false)
+      {
+        const size_t max_id = size(bitset) - std::distance(crbegin(bitset), it) - 1;
+        REQUIRE(tb.max_used_id() == max_id);
+        break;
+      }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Determines max_id at each step while freeing IDs from max to min",
+                   "[max_id]",
+                   uint16_t,
+                   uint32_t,
+                   uint64_t)
+{
+  for(const size_t max_elements_exp : max_elements_exp_vals)
+  {
+    auto [tb, bitset] = prepare_random_data<TestType>(max_elements_exp, 2);
+
+    for(auto it = crbegin(bitset); it != crend(bitset); ++it)
+    {
+      if(*it == false)
+      {
+        const size_t max_id = size(bitset) - std::distance(crbegin(bitset), it) - 1;
+        REQUIRE(tb.max_used_id() == max_id);
+        tb.set_free(max_id, true);
+      }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Determines max_id at each step while freeing IDs in random order",
+                   "[max_id]",
+                   uint16_t,
+                   uint32_t,
+                   uint64_t)
+{
+  for(const size_t max_elements_exp : max_elements_exp_vals)
+  {
+    auto [tb, bitset] = prepare_random_data<TestType>(max_elements_exp, 2);
+
+    for(size_t idx = 0; idx < tb.max_elements(); ++idx)
+      REQUIRE(bitset[idx] == tb.is_free(idx));
+
+    std::vector<size_t> max_id_history;
+    for(auto it = begin(bitset); it != end(bitset); ++it)
+    {
+      if(*it == false)
+        max_id_history.emplace_back(static_cast<size_t>(std::distance(begin(bitset), it)));
+    }
+    size_t * max_id = &max_id_history.back();
+
+    std::vector<size_t> shuffled_ids{max_id_history};
+    std::shuffle(begin(shuffled_ids), end(shuffled_ids), g);
+    std::unordered_set<size_t> freed_ids;
+    for(const size_t id : shuffled_ids)
+    {
+      freed_ids.emplace(id);
+      INFO("id: " << id);
+      REQUIRE(tb.max_used_id() == *max_id);
+      tb.set_free(id, true);
+      if(id == *max_id)
+      {
+        while(freed_ids.count(*max_id))
+          --max_id;
+      }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Tree iterator", "[iter]", uint16_t, uint32_t, uint64_t)
+{
+  for(const size_t max_elements_exp : max_elements_exp_vals)
+  {
+    auto [tb, bitset] = prepare_random_data<TestType>(max_elements_exp, 2);
+    for(size_t id : tb.used_ids_iter())
+    {
+      INFO("id: " << id);
+      INFO("max elements: " << tb.max_elements());
+      REQUIRE(!bitset[id]);
+    }
+  }
+}
+
+/// BENCHMARKS
 
 TEST_CASE("TreeBitset<uint64> with 2^23 elements", "[bench]")
 {
   BENCHMARK("init + obtain all in order")
   {
-    TreeBitset<uint64_t> tb{23};
+    TreeBitset tb{23};
     for(size_t idx = 0; idx < tb.max_elements(); ++idx)
       tb.obtain_id();
     REQUIRE_FALSE(tb.is_free(123));
@@ -131,7 +250,7 @@ TEST_CASE("TreeBitset<uint64> with 2^23 elements", "[bench]")
 
   BENCHMARK_ADVANCED("obtain 1024 in order")(Catch::Benchmark::Chronometer meter)
   {
-    TreeBitset<uint64_t> tb{23};
+    TreeBitset<> tb{23};
     meter.measure([&] {
       for(size_t idx = 0; idx < 1024; ++idx)
         tb.obtain_id();
@@ -141,7 +260,7 @@ TEST_CASE("TreeBitset<uint64> with 2^23 elements", "[bench]")
 
   BENCHMARK_ADVANCED("obtain all in order")(Catch::Benchmark::Chronometer meter)
   {
-    TreeBitset<uint64_t> tb{23};
+    TreeBitset<> tb{23};
     meter.measure([&] {
       for(size_t idx = 0; idx < tb.max_elements(); ++idx)
         tb.obtain_id();
@@ -151,8 +270,8 @@ TEST_CASE("TreeBitset<uint64> with 2^23 elements", "[bench]")
 
   BENCHMARK_ADVANCED("obtain half in order")(Catch::Benchmark::Chronometer meter)
   {
-    TreeBitset<uint64_t> tb{23};
-    const size_t         n_elements = tb.max_elements() / 2;
+    TreeBitset<> tb{23};
+    const size_t n_elements = tb.max_elements() / 2;
     meter.measure([&] {
       for(size_t idx = 0; idx < n_elements; ++idx)
         tb.obtain_id();
@@ -162,11 +281,11 @@ TEST_CASE("TreeBitset<uint64> with 2^23 elements", "[bench]")
 
   BENCHMARK_ADVANCED("obtain half - random free order")(Catch::Benchmark::Chronometer meter)
   {
-    TreeBitset<uint64_t> tb{23};
+    TreeBitset<> tb{23};
 
     const size_t max_elements = tb.max_elements();
     for(size_t idx = 0; idx < max_elements / 2; ++idx)
-      tb.set_free(rand() % max_elements, false);
+      tb.set_free(g() % max_elements, false);
 
     meter.measure([&] {
       const size_t max_elements = tb.max_elements();
@@ -178,11 +297,11 @@ TEST_CASE("TreeBitset<uint64> with 2^23 elements", "[bench]")
 
   BENCHMARK_ADVANCED("set all unfree manually")(Catch::Benchmark::Chronometer meter)
   {
-    TreeBitset<uint64_t> tb{23};
+    TreeBitset<> tb{23};
 
     const size_t max_elements = tb.max_elements();
     for(size_t idx = 0; idx < max_elements / 2; ++idx)
-      tb.set_free(rand() % max_elements, false);
+      tb.set_free(g() % max_elements, false);
 
     meter.measure([&] {
       const size_t max_elements = tb.max_elements();

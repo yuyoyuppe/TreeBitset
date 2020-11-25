@@ -11,7 +11,15 @@ namespace std {
 template <typename T>
 int countr_zero(T x)
 {
-  if constexpr(sizeof(T) <= 4)
+  if constexpr(sizeof(T) == 1)
+  {
+    return std::min<T>(static_cast<T>(_tzcnt_u32(x)), T{8});
+  }
+  else if constexpr(sizeof(T) == 2)
+  {
+    return std::min<T>(static_cast<T>(_tzcnt_u32(x)), T{16});
+  }
+  else if constexpr(sizeof(T) <= 4)
   {
     return _tzcnt_u32(x);
   }
@@ -24,5 +32,43 @@ int countr_zero(T x)
     static_assert(sizeof(T) <= 8, "this type isn't supported");
   }
 }
+
+template <typename T>
+int countl_zero(T x)
+{
+  if constexpr(sizeof(T) == 1)
+  {
+    return _lzcnt_u32(x) - 24;
+  }
+  else if constexpr(sizeof(T) == 2)
+  {
+    return _lzcnt_u32(x) - 16;
+  }
+  else if constexpr(sizeof(T) <= 4)
+  {
+    return _lzcnt_u32(x);
+  }
+  else if constexpr(sizeof(T) == 8)
+  {
+    return static_cast<int>(_lzcnt_u64(x));
+  }
+  else
+  {
+    static_assert(sizeof(T) <= 8, "this type isn't supported");
+  }
+}
+
+template <typename T>
+int countl_one(T x)
+{
+  return countl_zero<T>(~x);
+}
+
+template <typename T>
+int countr_one(T x)
+{
+  return countr_zero<T>(~x);
+}
+
 }
 #endif
