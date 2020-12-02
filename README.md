@@ -33,38 +33,46 @@ benchmark name                       samples       iterations    estimated
                                      mean          low mean      high mean    
                                      std dev       low std dev   high std dev 
 ------------------------------------------------------------------------------
-init + obtain all in order                     100             1     6.47031 s
-                                        60.1453 ms    59.6745 ms     60.779 ms
-                                        2.76415 ms    2.21249 ms    4.01089 ms
+init + obtain all in order                     100             1     6.16872 s
+                                        68.0077 ms    66.4381 ms    70.6069 ms
+                                        10.1123 ms    7.16329 ms    16.1869 ms
                                                                               
-obtain 1024 in order                           100            26     5.1376 ms
-                                        7.42546 us    7.17762 us    7.79862 us
-                                        1.53341 us    1.15055 us    2.27446 us
+obtain 1024 in order                           100            16     4.9232 ms
+                                        8.16769 us    7.77831 us    8.72425 us
+                                        2.34166 us    1.81383 us    3.45708 us
                                                                               
-obtain all in order                            100             1     1.91044 s
-                                        67.5105 ms    66.2268 ms    68.9223 ms
-                                         6.8658 ms    6.08147 ms    7.94221 ms
+obtain all in order                            100             1     1.80206 s
+                                        62.1374 ms    61.3321 ms    63.4338 ms
+                                        5.11557 ms    3.63539 ms    7.70246 ms
                                                                               
-obtain half in order                           100             1    924.036 ms
-                                        32.8601 ms    32.3722 ms    33.4521 ms
-                                        2.73764 ms    2.32745 ms    3.26431 ms
+obtain half in order                           100             1    818.701 ms
+                                        31.1191 ms    30.7931 ms    31.5254 ms
+                                        1.85207 ms    1.54352 ms    2.29246 ms
                                                                               
-obtain half - random free order                100             1    894.213 ms
-                                        31.4904 ms    31.0066 ms    32.1196 ms
-                                        2.80062 ms    2.29626 ms    3.60343 ms
+obtain half - random free order                100             1    791.221 ms
+                                          31.07 ms    30.7271 ms     31.551 ms
+                                         2.0571 ms     1.5805 ms    2.69675 ms
                                                                               
-set all unfree manually                        100             1     4.88769 s
-                                        18.3903 ms     18.178 ms    18.6825 ms
-                                        1.26279 ms    971.006 us    1.69012 ms
+set all unfree manually                        100             1     5.51596 s
+                                        26.6275 ms    26.4264 ms    26.8713 ms
+                                        1.12454 ms    937.962 us    1.41785 ms
+                                                                              
+pack+unpack to a pre-allocated                                                
+buffers                                        100             1      1.2609 s
+                                        12.8795 ms     12.734 ms     13.066 ms
+                                        835.339 us    690.031 us    1.14154 ms
 ```
 
 # TODO
 - <s>benchmarks</s>
-- implement id list transforming into ranges for set_free_for_range
-- support building metadata from a provided block
-- use factory with error-handling
-- support packing
-- implement set_free_for_range
-- external memory block supply policy
+- <s>support packing</s>
 - zero/one for free-indication policy
+
+- use factory with error-handling
+- external memory block supply policy
+
 - make IDiterator bidirectional_iterator_tag
+- support building metadata from a provided block
+
+- implement set_free_for_range
+- implement id list transforming into ranges for set_free_for_range

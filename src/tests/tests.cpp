@@ -14,7 +14,7 @@
 auto get_seed()
 {
   std::random_device::result_type seed = std::random_device{}();
-  //seed = 771893045;
+  //seed = 451341145;
   printf("seed: %u\n", seed);
   return seed;
 }
@@ -80,14 +80,16 @@ TEST_CASE("Tree configuration", "[properties]")
     REQUIRE(tb.max_elements() == 64 * 64 * 2);
   }
 
-  SECTION("TreeBitset<uint8_t> with 2^7 elements")
-  {
-    TreeBitset<TreeBitsetConfig<std::uint8_t>> tb{7};
-    REQUIRE(tb.num_metadata_levels() == 2);
-    REQUIRE(tb.num_element_blocks() == 16);
-    REQUIRE(tb.num_metadata_blocks() == 1 + 8);
-    REQUIRE(tb.max_elements() == 128);
-  }
+  // we don't support uint8_t for now, since it doesn't support all max_elements_exp_vals ^_~. need to
+  // accomodate to it
+  //SECTION("TreeBitset<uint8_t> with 2^7 elements")
+  //{
+  //  TreeBitset<TreeBitsetConfig<std::uint8_t>> tb{7};
+  //  REQUIRE(tb.num_metadata_levels() == 2);
+  //  REQUIRE(tb.num_element_blocks() == 16);
+  //  REQUIRE(tb.num_metadata_blocks() == 1 + 8);
+  //  REQUIRE(tb.max_elements() == 128);
+  //}
 }
 
 TEMPLATE_TEST_CASE("TreeBitset (un)set random 1/2", "[set]", uint16_t, uint32_t, uint64_t)
@@ -163,6 +165,7 @@ TEMPLATE_TEST_CASE("Determines max_id after unsetting random 1/2", "[max_id]", u
 
 TEMPLATE_TEST_CASE("Determines max_id at each step while freeing IDs from max to min",
                    "[max_id]",
+
                    uint16_t,
                    uint32_t,
                    uint64_t)
@@ -222,7 +225,7 @@ TEMPLATE_TEST_CASE("Determines max_id at each step while freeing IDs in random o
   }
 }
 
-TEMPLATE_TEST_CASE("Tree iterator", "[iter]", uint16_t, uint32_t, uint64_t)
+TEMPLATE_TEST_CASE("Used IDs iterator", "[iter]", uint16_t, uint32_t, uint64_t)
 {
   for(const size_t max_elements_exp : max_elements_exp_vals)
   {
@@ -233,6 +236,26 @@ TEMPLATE_TEST_CASE("Tree iterator", "[iter]", uint16_t, uint32_t, uint64_t)
       INFO("max elements: " << tb.max_elements());
       REQUIRE(!bitset[id]);
     }
+  }
+}
+
+TEMPLATE_TEST_CASE("(Un)packing", "[pack]", uint16_t, uint32_t, uint64_t)
+{
+  for(const size_t max_elements_exp : max_elements_exp_vals)
+  {
+    auto [tb, _] = prepare_random_data<TestType>(max_elements_exp, 2);
+
+    std::vector<RLEBitAbbreviation> abbreviations;
+    std::vector<TestType>           packed_blocks;
+    tb.pack([&abbreviations](const RLEBitAbbreviation & a) { abbreviations.emplace_back(a); },
+            [&packed_blocks](const TestType block) { packed_blocks.emplace_back(block); });
+
+    REQUIRE(!packed_blocks.empty());
+
+    auto unpacked =
+      decltype(tb)::unpack(max_elements_exp, packed_blocks.data(), abbreviations.data(), size(abbreviations));
+
+    REQUIRE(unpacked == tb);
   }
 }
 
@@ -308,6 +331,33 @@ TEST_CASE("TreeBitset<uint64> with 2^23 elements", "[bench]")
       for(size_t idx = 0; idx < max_elements; ++idx)
         tb.set_free(idx, false);
       REQUIRE_FALSE(tb.is_free(123));
+    });
+  };
+
+  BENCHMARK_ADVANCED("pack+unpack to a pre-allocated buffers")(Catch::Benchmark::Chronometer meter)
+  {
+    TreeBitset<> tb{23};
+
+    const size_t max_elements = tb.max_elements();
+    for(size_t idx = 0; idx < max_elements / 2; ++idx)
+      tb.set_free(g() % max_elements, false);
+
+    std::vector<uint64_t> packed_blocks(tb.max_elements(), 0);
+    size_t                packed_blocks_iter = 0;
+
+    std::vector<RLEBitAbbreviation> abbreviations(tb.max_elements(), RLEBitAbbreviation{});
+    size_t                          abbreviations_iter = 0;
+
+    meter.measure([&] {
+      // need to reset buffer positions, since it'll be run many times
+      packed_blocks_iter = 0;
+      abbreviations_iter = 0;
+      tb.pack([&](const RLEBitAbbreviation & a) { abbreviations[abbreviations_iter++] = a; },
+              [&](const uint64_t block) { packed_blocks[packed_blocks_iter++] = block; });
+
+      auto unpacked =
+        TreeBitset<>::unpack(23, packed_blocks.data(), abbreviations.data(), size(abbreviations));
+      REQUIRE(unpacked.max_elements() == tb.max_elements());
     });
   };
 }

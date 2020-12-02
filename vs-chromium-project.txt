@@ -1,0 +1,10 @@
+[SearchableFiles.include]
+*.hpp
+*.h
+*.cpp
+*.lua
+
+[SearchableFiles.ignore]
+deps
+build
+src\tests\catch_amalgamated*

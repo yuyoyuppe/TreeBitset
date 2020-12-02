@@ -5,6 +5,7 @@
 
 #include "detail/bit"
 #include "detail/math_utils.hpp"
+#include "detail/bit_rle_pack.hpp"
 
 #include "config.hpp"
 
@@ -15,6 +16,8 @@ class TreeBitset : Config
 
 public:
   using block_t                                 = typename Config::block_t;
+  static_assert(sizeof(block_t) > 1, "block size must be bigger than 1 byte!");
+
   constexpr static inline size_t invalid_id     = std::numeric_limits<size_t>::max();
   constexpr static inline size_t bits_per_block = std::numeric_limits<block_t>::digits;
 
@@ -43,6 +46,20 @@ public:
   inline size_t  num_metadata_blocks() const;
   inline size_t  max_elements() const;
 
+  template <typename AddAbbreviationCallback, typename AddPackedBlockCallback>
+  void pack(AddAbbreviationCallback abbrev_cb, AddPackedBlockCallback block_cb) const;
+
+  static TreeBitset unpack(const size_t               exp_max,
+                           const block_t *            packed_blocks,
+                           const RLEBitAbbreviation * abbreviations,
+                           size_t                     abbreviations_count);
+
+  template <typename C>
+  friend inline bool operator==(const TreeBitset<C> & lhs, const TreeBitset<C> & rhs);
+
+  template <typename C>
+  friend inline bool operator!=(const TreeBitset<C> & lhs, const TreeBitset<C> & rhs);
+
 private:
   friend class IDIterator;
 
@@ -57,6 +74,7 @@ private:
   uint8_t _num_metadata_levels;
   size_t  _max_elements;
 
+  inline void    calculate_constants(const size_t exp_max);
   inline block_t max_element_mask() const;
   inline size_t  num_metadata_blocks_on_level(const uint8_t level) const;
   inline void    update_metadata(const size_t id, const bool all_bits_value);

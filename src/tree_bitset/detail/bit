@@ -11,15 +11,11 @@ namespace std {
 template <typename T>
 int countr_zero(T x)
 {
-  if constexpr(sizeof(T) == 1)
+  if constexpr(sizeof(T) < 4)
   {
-    return std::min<T>(static_cast<T>(_tzcnt_u32(x)), T{8});
+    return _tzcnt_u32(x) & static_cast<T>(~0);
   }
-  else if constexpr(sizeof(T) == 2)
-  {
-    return std::min<T>(static_cast<T>(_tzcnt_u32(x)), T{16});
-  }
-  else if constexpr(sizeof(T) <= 4)
+  else if constexpr(sizeof(T) == 4)
   {
     return _tzcnt_u32(x);
   }
@@ -44,7 +40,7 @@ int countl_zero(T x)
   {
     return _lzcnt_u32(x) - 16;
   }
-  else if constexpr(sizeof(T) <= 4)
+  else if constexpr(sizeof(T) == 4)
   {
     return _lzcnt_u32(x);
   }

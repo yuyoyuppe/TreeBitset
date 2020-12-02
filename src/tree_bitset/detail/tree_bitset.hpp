@@ -3,7 +3,7 @@
 #include "../tree_bitset.hpp"
 
 template <typename Config>
-TreeBitset<Config>::TreeBitset(const size_t exp_max)
+inline void TreeBitset<Config>::calculate_constants(const size_t exp_max)
 {
   assert(exp_max < bits_per_block);
 
@@ -18,7 +18,12 @@ TreeBitset<Config>::TreeBitset(const size_t exp_max)
   _num_metadata_blocks = 0;
   for(uint8_t metadata_lvl_idx = 0; metadata_lvl_idx < _num_metadata_levels; ++metadata_lvl_idx)
     _num_metadata_blocks += num_metadata_blocks_on_level(metadata_lvl_idx);
+}
 
+template <typename Config>
+TreeBitset<Config>::TreeBitset(const size_t exp_max)
+{
+  calculate_constants(exp_max);
   _storage = std::make_unique<block_t[]>(_num_element_blocks + _num_metadata_blocks);
 
   clean();
@@ -55,6 +60,7 @@ inline size_t TreeBitset<Config>::max_elements() const
 {
   return _max_elements;
 }
+
 template <typename Config>
 inline size_t TreeBitset<Config>::max_used_id() const
 {
@@ -202,6 +208,53 @@ size_t TreeBitset<Config>::obtain_id()
     update_metadata(id, false);
 
   return id;
+}
+
+template <typename Config>
+template <typename AddAbbreviationCallback, typename AddPackedBlockCallback>
+inline void TreeBitset<Config>::pack(AddAbbreviationCallback abbrev_cb, AddPackedBlockCallback block_cb) const
+{
+  detail::rle_pack(_storage.get(), _num_element_blocks + _num_metadata_blocks, abbrev_cb, block_cb);
+}
+
+template <typename Config>
+inline TreeBitset<Config> TreeBitset<Config>::unpack(const size_t               exp_max,
+                                                     const block_t *            packed_blocks,
+                                                     const RLEBitAbbreviation * abbreviations,
+                                                     size_t                     abbreviations_count)
+{
+  TreeBitset result(exp_max);
+  detail::rle_unpack(result._storage.get(),
+                     result._num_element_blocks + result._num_metadata_blocks,
+                     packed_blocks,
+                     abbreviations,
+                     abbreviations_count);
+  if constexpr(Config::get<MaxIDPolicy>() != MaxIDPolicy::keep_max_id_current)
+  {
+      result.find_new_smaller_max_used_id();
+  }
+  return result;
+}
+
+template <typename Config>
+inline bool operator==(const TreeBitset<Config> & lhs, const TreeBitset<Config> & rhs)
+{
+  if(lhs._max_elements != rhs._max_elements)
+    return false;
+
+  if constexpr(Config::get<MaxIDPolicy>() != MaxIDPolicy::keep_max_id_current)
+  {
+    if(lhs._max_used_id != rhs._max_used_id)
+      return false;
+  }
+  const size_t storage_bytes = (lhs._num_element_blocks + lhs._num_metadata_blocks) * sizeof(Config::block_t);
+  return !std::memcmp(lhs._storage.get(), rhs._storage.get(), storage_bytes);
+}
+
+template <typename Config>
+inline bool operator!=(const TreeBitset<Config> & lhs, const TreeBitset<Config> & rhs)
+{
+  return !(lhs == rhs);
 }
 
 template <typename Config>
