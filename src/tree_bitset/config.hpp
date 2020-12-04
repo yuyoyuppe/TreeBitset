@@ -1,7 +1,7 @@
 #pragma once
 
 // TOOD: handle dependencies properly via premake_scaffold ~_~
-#include "../deps/meta-mate/src/meta_mate/config_builder.hpp"
+#include "../../deps/meta-mate/src/meta_mate/config_builder.hpp"
 
 enum class MaxIDPolicy {
   // this mainly impacts set_free(<id>, false) performance

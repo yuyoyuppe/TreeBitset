@@ -1,5 +1,6 @@
 #pragma once
 #include <cassert>
+#include <cstring>
 #include "../tree_bitset.hpp"
 
 template <typename Config>
@@ -229,7 +230,7 @@ inline TreeBitset<Config> TreeBitset<Config>::unpack(const size_t               
                      packed_blocks,
                      abbreviations,
                      abbreviations_count);
-  if constexpr(Config::get<MaxIDPolicy>() != MaxIDPolicy::keep_max_id_current)
+  if constexpr(Config::template get<MaxIDPolicy>() != MaxIDPolicy::keep_max_id_current)
   {
       result.find_new_smaller_max_used_id();
   }
@@ -242,13 +243,13 @@ inline bool operator==(const TreeBitset<Config> & lhs, const TreeBitset<Config> 
   if(lhs._max_elements != rhs._max_elements)
     return false;
 
-  if constexpr(Config::get<MaxIDPolicy>() != MaxIDPolicy::keep_max_id_current)
+  if constexpr(Config::template get<MaxIDPolicy>() != MaxIDPolicy::keep_max_id_current)
   {
     if(lhs._max_used_id != rhs._max_used_id)
       return false;
   }
-  const size_t storage_bytes = (lhs._num_element_blocks + lhs._num_metadata_blocks) * sizeof(Config::block_t);
-  return !std::memcmp(lhs._storage.get(), rhs._storage.get(), storage_bytes);
+  const size_t storage_bytes = (lhs._num_element_blocks + lhs._num_metadata_blocks) * sizeof(typename Config::block_t);
+  return !memcmp(lhs._storage.get(), rhs._storage.get(), storage_bytes);
 }
 
 template <typename Config>

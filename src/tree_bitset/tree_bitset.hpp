@@ -9,6 +9,8 @@
 
 #include "config.hpp"
 
+#undef max
+
 template <typename Config = DefaultTreeBitsetConfig>
 class TreeBitset : Config
 {

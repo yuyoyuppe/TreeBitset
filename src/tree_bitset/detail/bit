@@ -3,10 +3,11 @@
 
 #include <type_traits>
 
-#if !defined(_MSC_VER) || _MSVC_LANG >= 202000L
+#if defined(__cpp_lib_bitops)
 #include <bit>
 #else
-#include <intrin.h>
+#include <immintrin.h>
+
 namespace std {
 template <typename T>
 int countr_zero(T x)
