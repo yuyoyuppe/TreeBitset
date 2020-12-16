@@ -15,7 +15,7 @@ using namespace treebitset;
 auto get_seed()
 {
   std::random_device::result_type seed = std::random_device{}();
-  //seed = 451341145;
+  //seed                                 = 451341145;
   printf("seed: %u\n", seed);
   return seed;
 }
@@ -268,12 +268,27 @@ TEMPLATE_TEST_CASE("Used IDs iterator", "[iter]", uint16_t, uint32_t, uint64_t)
 {
   for(const size_t max_elements_exp : max_elements_exp_vals)
   {
+    TreeBitset<TreeBitsetConfig<TestType>> empty{max_elements_exp};
+    for(size_t id : empty.used_ids_iter())
+    {
+      (void)id;
+      REQUIRE(false);
+    }
+
     auto [tb, bitset] = prepare_random_data<TestType>(max_elements_exp, 2);
     for(size_t id : tb.used_ids_iter())
     {
       INFO("id: " << id);
       INFO("max elements: " << tb.max_elements());
       REQUIRE(!bitset[id]);
+      bitset[id] = true;
+    }
+    size_t id = 0;
+    for(const bool bit : bitset)
+    {
+      INFO("id: " << id);
+      REQUIRE(bit);
+      id++;
     }
   }
 }

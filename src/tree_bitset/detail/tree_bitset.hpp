@@ -311,6 +311,7 @@ public:
       _end_ptr = &container._storage[container.num_metadata_blocks() + (max_used_id >> bits_per_block_log2)];
     else
       _end_ptr = _start_ptr;
+    ++_end_ptr;
     advanced_to_next_block();
   }
 
@@ -332,8 +333,9 @@ public:
   IDIterator begin() const { return *this; }
   IDIterator end() const
   {
-    IDIterator end = *this;
-    end._ptr       = end._end_ptr;
+    IDIterator end  = *this;
+    end._ptr        = end._end_ptr;
+    end._block_mask = static_cast<block_t>(~block_t{0});
     return end;
   }
 };
