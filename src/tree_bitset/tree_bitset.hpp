@@ -11,13 +11,14 @@
 
 #undef max
 
+namespace treebitset {
 template <typename Config = DefaultTreeBitsetConfig>
 class TreeBitset : Config
 {
   class IDIterator;
 
 public:
-  using block_t                                 = typename Config::block_t;
+  using block_t = typename Config::block_t;
   static_assert(sizeof(block_t) > 1, "block size must be bigger than 1 byte!");
 
   constexpr static inline size_t invalid_id     = std::numeric_limits<size_t>::max();
@@ -82,5 +83,5 @@ private:
   inline void    update_metadata(const size_t id, const bool all_bits_value);
   inline size_t  find_new_smaller_max_used_id() const;
 };
-
+}
 #include "detail/tree_bitset.hpp"

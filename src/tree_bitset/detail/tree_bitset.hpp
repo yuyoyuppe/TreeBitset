@@ -3,6 +3,7 @@
 #include <cstring>
 #include "../tree_bitset.hpp"
 
+namespace treebitset {
 template <typename Config>
 inline void TreeBitset<Config>::calculate_constants(const size_t exp_max)
 {
@@ -204,7 +205,7 @@ size_t TreeBitset<Config>::obtain_id()
   _storage[storage_idx] &= ~(block_t{1} << bit);
 
   const size_t id = bit + metadata_lvl_block_idx * bits_per_block;
-  _max_used_id    = std::max(_max_used_id, id);
+  _max_used_id    = _max_used_id == invalid_id ? id : std::max(_max_used_id, id);
   if(!_storage[storage_idx])
     update_metadata(id, false);
 
@@ -232,7 +233,7 @@ inline TreeBitset<Config> TreeBitset<Config>::unpack(const size_t               
                      abbreviations_count);
   if constexpr(Config::template get<MaxIDPolicy>() != MaxIDPolicy::keep_max_id_current)
   {
-      result.find_new_smaller_max_used_id();
+    result.find_new_smaller_max_used_id();
   }
   return result;
 }
@@ -248,7 +249,8 @@ inline bool operator==(const TreeBitset<Config> & lhs, const TreeBitset<Config> 
     if(lhs._max_used_id != rhs._max_used_id)
       return false;
   }
-  const size_t storage_bytes = (lhs._num_element_blocks + lhs._num_metadata_blocks) * sizeof(typename Config::block_t);
+  const size_t storage_bytes =
+    (lhs._num_element_blocks + lhs._num_metadata_blocks) * sizeof(typename Config::block_t);
   return !memcmp(lhs._storage.get(), rhs._storage.get(), storage_bytes);
 }
 
@@ -340,4 +342,5 @@ template <typename Config>
 inline typename TreeBitset<Config>::IDIterator TreeBitset<Config>::used_ids_iter() const
 {
   return *this;
+}
 }

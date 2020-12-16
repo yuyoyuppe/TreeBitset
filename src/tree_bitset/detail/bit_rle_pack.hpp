@@ -6,6 +6,7 @@
 #include <cinttypes>
 #include <cstddef>
 
+namespace treebitset {
 struct RLEBitAbbreviation
 {
   uint64_t position_and_val = 0;
@@ -94,4 +95,5 @@ void rle_unpack(block_t *                  unpacked_blocks,
     unpacked_blocks[unpacked_idx++] = packed_blocks[packed_idx++];
 }
 
+}
 }

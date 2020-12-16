@@ -3,13 +3,14 @@
 #include <array>
 #include <vector>
 #include <algorithm>
-#include <iostream> // TODO: REMOVE
 #include <random>
 #include <unordered_set>
 #include <tuple>
 
 #define CATCH_CONFIG_ENABLE_BENCHMARKING
 #include "catch_amalgamated.hpp"
+
+using namespace treebitset;
 
 auto get_seed()
 {
@@ -159,6 +160,44 @@ TEMPLATE_TEST_CASE("Determines max_id after unsetting random 1/2", "[max_id]", u
         REQUIRE(tb.max_used_id() == max_id);
         break;
       }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE(
+  "Determines max_id after obtaining 1/2 elements at each step", "[max_id]", uint16_t, uint32_t, uint64_t)
+{
+  for(const size_t max_elements_exp : max_elements_exp_vals)
+  {
+    TreeBitset<TreeBitsetConfig<TestType>> tb{max_elements_exp};
+    for(size_t idx = 0; idx < tb.max_elements() / 2; ++idx)
+    {
+      const size_t new_id = tb.obtain_id();
+      REQUIRE(tb.max_used_id() == new_id);
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Determines max_id after obtaining 1/2 elements and freeing max element at each step",
+                   "[max_id]",
+                   uint16_t,
+                   uint32_t,
+                   uint64_t)
+{
+  for(const size_t max_elements_exp : max_elements_exp_vals)
+  {
+    TreeBitset<TreeBitsetConfig<TestType>> tb{max_elements_exp};
+    for(size_t idx = 0; idx < tb.max_elements() / 2; ++idx)
+    {
+      const size_t new_id = tb.obtain_id();
+      REQUIRE(tb.max_used_id() == new_id);
+      tb.set_free(new_id, true);
+      if(idx == 0)
+        REQUIRE(tb.max_used_id() == decltype(tb)::invalid_id);
+      else
+        REQUIRE(tb.max_used_id() == new_id - 1);
+      // reobtain ID
+      tb.obtain_id();
     }
   }
 }
