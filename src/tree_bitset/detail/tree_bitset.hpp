@@ -161,7 +161,7 @@ inline size_t TreeBitset<Config>::find_new_smaller_max_used_id() const
 {
   const block_t * const first_data_block = &_storage[num_metadata_blocks()];
   const size_t          initial_block =
-    _max_used_id != invalid_id ? (_max_used_id >> bits_per_block_log2) : num_element_blocks();
+    _max_used_id != invalid_id ? (_max_used_id >> bits_per_block_log2) : num_element_blocks() - 1;
   const block_t * previous_max_id_block = &_storage[_num_metadata_blocks + initial_block];
   // Traverse data blocks until we find the first block which doesnt contain only free elements
   while((previous_max_id_block != first_data_block) && (*previous_max_id_block == static_cast<block_t>(~0)))
@@ -231,9 +231,9 @@ inline TreeBitset<Config> TreeBitset<Config>::unpack(const size_t               
                      packed_blocks,
                      abbreviations,
                      abbreviations_count);
-  if constexpr(Config::template get<MaxIDPolicy>() != MaxIDPolicy::keep_max_id_current)
+  if constexpr(Config::template get<MaxIDPolicy>() == MaxIDPolicy::keep_max_id_current)
   {
-    result.find_new_smaller_max_used_id();
+    result._max_used_id = result.find_new_smaller_max_used_id();
   }
   return result;
 }
@@ -244,7 +244,7 @@ inline bool operator==(const TreeBitset<Config> & lhs, const TreeBitset<Config> 
   if(lhs._max_elements != rhs._max_elements)
     return false;
 
-  if constexpr(Config::template get<MaxIDPolicy>() != MaxIDPolicy::keep_max_id_current)
+  if constexpr(Config::template get<MaxIDPolicy>() == MaxIDPolicy::keep_max_id_current)
   {
     if(lhs._max_used_id != rhs._max_used_id)
       return false;
