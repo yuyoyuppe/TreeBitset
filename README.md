@@ -76,3 +76,5 @@ buffers                                        100             1      1.2609 s
 
 - implement set_free_for_range
 - implement id list transforming into ranges for set_free_for_range
+
+- AVX
