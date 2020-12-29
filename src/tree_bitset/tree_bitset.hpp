@@ -2,6 +2,7 @@
 #include <limits>
 #include <cinttypes>
 #include <memory>
+#include <algorithm>
 
 #include "detail/bit"
 #include "detail/math_utils.hpp"
