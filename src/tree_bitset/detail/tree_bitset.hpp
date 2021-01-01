@@ -326,9 +326,9 @@ public:
     advance();
     return *this;
   }
-  value_type operator*() { return current_id(); }
-  bool       operator==(const IDIterator & rhs) { return _ptr == rhs._ptr && _block_mask == rhs._block_mask; }
-  bool       operator!=(const IDIterator & rhs) { return _ptr != rhs._ptr || _block_mask != rhs._block_mask; }
+  value_type operator*() const { return current_id(); }
+  bool operator==(const IDIterator & rhs) const { return _ptr == rhs._ptr && _block_mask == rhs._block_mask; }
+  bool operator!=(const IDIterator & rhs) const { return _ptr != rhs._ptr || _block_mask != rhs._block_mask; }
 
   IDIterator begin() const { return *this; }
   IDIterator end() const

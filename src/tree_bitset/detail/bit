@@ -3,7 +3,7 @@
 
 #include <type_traits>
 
-#if defined(__cpp_lib_bitops)
+#if __has_cpp_attribute(__cpp_lib_bitops) || (defined(__APPLE__) && __cplusplus >= 201707)
 #include <bit>
 #else
 #include <immintrin.h>
@@ -12,6 +12,8 @@ namespace std {
 template <typename T>
 int countr_zero(T x)
 {
+  static_assert(std::is_unsigned_v<T>);
+
   if constexpr(sizeof(T) < 4)
   {
     return _tzcnt_u32(x) & static_cast<T>(~0);
@@ -33,6 +35,8 @@ int countr_zero(T x)
 template <typename T>
 int countl_zero(T x)
 {
+  static_assert(std::is_unsigned_v<T>);
+
   if constexpr(sizeof(T) == 1)
   {
     return _lzcnt_u32(x) - 24;
@@ -58,12 +62,14 @@ int countl_zero(T x)
 template <typename T>
 int countl_one(T x)
 {
+  static_assert(std::is_unsigned_v<T>);
   return countl_zero<T>(~x);
 }
 
 template <typename T>
 int countr_one(T x)
 {
+  static_assert(std::is_unsigned_v<T>);
   return countr_zero<T>(~x);
 }
 
