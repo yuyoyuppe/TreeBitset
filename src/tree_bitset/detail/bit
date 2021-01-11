@@ -3,7 +3,7 @@
 
 #include <type_traits>
 
-#if __has_cpp_attribute(__cpp_lib_bitops) || (defined(__APPLE__) && __cplusplus >= 201707)
+#if defined(__cpp_lib_bitops) || (defined(__APPLE__) && __cplusplus >= 201707)
 #include <bit>
 #else
 #include <immintrin.h>
